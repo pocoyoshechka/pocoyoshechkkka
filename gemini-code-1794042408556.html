@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вгадай Слово: Справжня Адмінка та Онлайн</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+        body {
+            background-color: #121213;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        #auth-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 10, 15, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+            text-align: center;
+        }
+        #auth-modal h1 { color: #ffcc00; font-size: 28px; margin-bottom: 10px; }
+        #auth-modal p { color: #ccc; margin-bottom: 20px; font-size: 15px; }
+        .auth-input {
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 2px solid #538d4e;
+            background: #1e1e24;
+            color: white;
+            width: 280px;
+            text-align: center;
+            margin-bottom: 12px;
+            outline: none;
+        }
+        .primary-btn {
+            background: linear-gradient(135deg, #538d4e, #2e7d32);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .primary-btn:hover { transform: scale(1.05); }
+
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 10, 15, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 90;
+            padding: 20px;
+        }
+        .modal-card {
+            background: #1e1e24;
+            border: 2px solid #ffcc00;
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .modal-card h2 { color: #ffcc00; margin-bottom: 15px; }
+
+        .admin-card { border-color: #ff1744 !important; background: #1a1214 !important; }
+        .admin-card h2 { color: #ff5252 !important; }
+
+        .player-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            border-bottom: 1px solid #333;
+            font-size: 13px;
+            text-align: left;
+        }
+        .admin-actions { display: flex; gap: 4px; }
+        .action-btn {
+            padding: 4px 8px;
+            font-size: 11px;
+            border-radius: 4px;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .give-btn { background: #538d4e; }
+        .del-btn { background: #ff1744; }
+
+        .lb-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-bottom: 1px solid #333;
+            font-size: 15px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 550px;
+            border-bottom: 1px solid #3a3a3c;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+        .profile-info { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: bold; }
+        .avatar { 
+            width: 40px; height: 40px; background: #538d4e; border-radius: 50%; 
+            display: flex; justify-content: center; align-items: center; font-size: 20px; border: 1px solid #ffcc00; 
+        }
+        .coins-badge { background: #272729; border: 1px solid #ffcc00; color: #ffcc00; padding: 3px 8px; border-radius: 12px; font-size: 12px; }
+        .game-title { font-size: 18px; font-weight: bold; letter-spacing: 1px; color: #ffcc00; }
+
+        .mode-panel {
+            display: flex; gap: 5px; margin-bottom: 8px; flex-wrap: wrap; justify-content: center;
+        }
+        .mode-btn {
+            background-color: #272729; color: #ccc; border: 2px solid #3a3a3c;
+            padding: 5px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px;
+        }
+        .mode-btn.active { background-color: #538d4e; border-color: #4caf50; color: white; }
+        .mode-btn.shop-btn { background-color: #9c27b0; border-color: #ba68c8; color: white; }
+        .mode-btn.top-btn { background-color: #b59f3b; border-color: #fbc02d; color: white; }
+        .mode-btn.admin-btn { background-color: #d50000; border-color: #ff5252; color: white; }
+
+        .online-box {
+            background: #1e1e24; border: 1px solid #3a3a3c; border-radius: 8px;
+            padding: 10px 12px; width: 100%; max-width: 550px; margin-bottom: 8px;
+            display: none; flex-direction: column; gap: 8px; align-items: center; text-align: center; font-size: 13px;
+        }
+        .online-box.active { display: flex; }
+        .online-controls { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; align-items: center; }
+        .online-input {
+            padding: 6px 10px; border-radius: 6px; border: 1px solid #555;
+            background: #121213; color: white; font-size: 13px; width: 120px; text-align: center;
+        }
+        .room-tag { background: #2b579a; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 15px; }
+
+        #enemy-live-box {
+            background: #18181c; border: 1px dashed #ff1744; border-radius: 6px;
+            padding: 6px 12px; width: 100%; max-width: 550px; margin-bottom: 8px;
+            display: none; justify-content: space-between; align-items: center; font-size: 13px; color: #ff8a80;
+        }
+        #enemy-live-box.active { display: flex; }
+
+        #game-board {
+            display: grid; grid-template-rows: repeat(6, 1fr); grid-gap: 5px; margin-bottom: 8px;
+        }
+        .row { display: grid; grid-gap: 5px; }
+        .tile {
+            width: 44px; height: 44px; border: 2px solid #3a3a3c;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 20px; font-weight: bold; text-transform: uppercase; border-radius: 4px; background: #121213;
+        }
+
+        .tile[data-state="correct"] { background-color: #538d4e !important; border-color: #538d4e !important; }
+        .tile[data-state="present"] { background-color: #b59f3b !important; border-color: #b59f3b !important; }
+        .tile[data-state="absent"] { background-color: #3a3a3c !important; border-color: #3a3a3c !important; }
+
+        #keyboard { display: flex; flex-direction: column; gap: 5px; width: 100%; max-width: 550px; }
+        .key-row { display: flex; justify-content: center; gap: 3px; }
+        .key {
+            background-color: #818384; color: white; border: 0; border-radius: 4px;
+            height: 42px; flex: 1; display: flex; justify-content: center; align-items: center;
+            font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 12px; user-select: none;
+        }
+        .key.large { flex: 1.5; font-size: 10px; }
+        .key[data-state="correct"] { background-color: #538d4e; }
+        .key[data-state="present"] { background-color: #b59f3b; }
+        .key[data-state="absent"] { background-color: #3a3a3c; }
+
+        #message { margin-top: 3px; font-size: 15px; font-weight: bold; height: 20px; color: #ffcc00; text-align: center; }
+        .restart-btn {
+            background-color: #538d4e; color: white; border: none; padding: 6px 16px;
+            font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 3px; display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="auth-modal">
+        <h1>WORDLE: ВХІД В АКАУНТ 🎮</h1>
+        <p>Введи свій нікнейм та пароль:</p>
+        <input type="text" id="username-input" class="auth-input" placeholder="Твій нікнейм..." maxlength="12">
+        <input type="password" id="password-input" class="auth-input" placeholder="Твій пароль..." maxlength="20">
+        <br>
+        <button class="primary-btn" onclick="loginOrCreateAccount()">Увійти / Створити 🚀</button>
+    </div>
+
+    <!-- Вікно входу в адмінку -->
+    <div id="admin-login-modal" class="modal">
+        <div class="modal-card admin-card">
+            <h2>🔐 ВХІД В АДМІНКУ</h2>
+            <p style="font-size: 13px; color: #aaa; margin-bottom: 12px;">Пароль за замовчуванням: <b>admin123</b></p>
+            <input type="password" id="admin-pass-input" class="auth-input" placeholder="Пароль адміна...">
+            <br><br>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="primary-btn" style="background: #d50000;" onclick="verifyAdminPassword()">Увійти</button>
+                <button class="primary-btn" style="background: #555;" onclick="closeModal('admin-login-modal')">Скасувати</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Справжня панель адміна з реальними гравцями -->
+    <div id="admin-modal" class="modal">
+        <div class="modal-card admin-card">
+            <h2>🛡️ ПАНЕЛЬ АДМІНІСТРАТОРА</h2>
+            <div style="background: #271418; border: 1px solid #ff1744; border-radius: 8px; padding: 10px; margin-bottom: 15px; text-align: left;">
+                <h3 style="color: #ff5252; font-size: 14px; margin-bottom: 8px;">👑 Швидкі дії адміна:</h3>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                    <button class="primary-btn" style="padding: 6px 10px;" onclick="adminGiveSelfCoins()">🪙 +1000 Монет собі</button>
+                    <button class="primary-btn" style="padding: 6px 10px; background: #e65100;" onclick="changeAdminPassword()">🔑 Змінити пароль адміна</button>
+                </div>
+            </div>
+
+            <p style="font-size: 12px; color: #aaa; margin-bottom: 8px; text-align: left;">Реальні зареєстровані гравці у базі:</p>
+            <div id="admin-real-players-list" style="margin-bottom: 15px; max-height: 200px; overflow-y: auto; background: #121213; border-radius: 6px; padding: 5px;"></div>
+
+            <button class="primary-btn" style="background: #d50000;" onclick="closeModal('admin-modal')">Закрити ❌</button>
+        </div>
+    </div>
+
+    <!-- Справжній топ рекордів -->
+    <div id="leaderboard-modal" class="modal">
+        <div class="modal-card">
+            <h2>🏆 ТОП РЕКОРДІВ РЕАЛЬНИХ ГРАВЦІВ</h2>
+            <div id="leaderboard-list"></div>
+            <br>
+            <button class="primary-btn" onclick="closeModal('leaderboard-modal')">Закрити ❌</button>
+        </div>
+    </div>
+
+    <header>
+        <div class="profile-info">
+            <div class="avatar" id="user-avatar">😎</div>
+            <div>
+                <div id="display-name">Гравець</div>
+                <div style="display: flex; gap: 8px; margin-top: 2px;">
+                    <span style="font-size: 11px; color: #aaa;" id="user-stats">Перемог: 0</span>
+                    <span class="coins-badge" id="user-coins">🪙 0</span>
+                </div>
+            </div>
+        </div>
+        <div class="game-title">ВГАДАЙ СЛОВО</div>
+    </header>
+
+    <div class="mode-panel">
+        <button class="mode-btn active" id="btn-solo" onclick="setMode('solo')">🎯 Одиночна</button>
+        <button class="mode-btn" id="btn-custom" onclick="setMode('custom')">✏️ Своє</button>
+        <button class="mode-btn" id="btn-local" onclick="setMode('local')">👥 На 1 пристрої</button>
+        <button class="mode-btn" id="btn-online" onclick="setMode('online')">🌐 Онлайн кімната</button>
+        <button class="mode-btn top-btn" onclick="openLeaderboard()">🏆 Рекорди</button>
+        <button class="mode-btn admin-btn" onclick="requestAdminAccess()">🔐 Адмінка</button>
+    </div>
+
+    <div class="online-box" id="online-panel-box">
+        <div id="online-status">Натисни "Створити кімнату" або введи ID друга, щоб почати дуель!</div>
+        <div class="online-controls">
+            <button class="primary-btn" style="padding: 6px 12px; font-size: 12px;" onclick="createRoom()">➕ Створити кімнату</button>
+            <input type="text" id="room-id-input" class="online-input" placeholder="ID кімнати друга">
+            <button class="primary-btn" style="padding: 6px 12px; font-size: 12px; background: #2b579a;" onclick="joinRoom()">🔗 Підключитись</button>
+        </div>
+    </div>
+
+    <div id="enemy-live-box" class="">
+        <span>🔴 Ворог у кімнаті пише: <b id="enemy-typing-text">...</b></span>
+        <span id="enemy-status-msg" style="font-size: 11px; color: #ccc;">Дуель наживо</span>
+    </div>
+
+    <div id="game-board"></div>
+    <div id="message"></div>
+    <button class="restart-btn" id="restart-btn" onclick="initGame()">Нова Гра 🔄</button>
+
+    <div id="keyboard"></div>
+
+<script>
+    const DICTIONARY = ["ОКЕАН", "ПІСОК", "МОРЯК", "КУБОК", "ЗАМОК", "КАВУН", "СМАРТ", "АЛМАЗ", "ШКОЛА", "ПОЇЗД", "РАКЕТА", "МАШИНА", "ПЛАНЕТА"];
+    
+    let currentUser = { name: "", password: "", wins: 0, coins: 0 };
+    let isAdmin = false;
+    let gameMode = 'solo';
+    let peer = null;
+    let conn = null;
+
+    let targetWord = "ОКЕАН";
+    let wordLength = 5;
+    let currentRow = 0;
+    let currentTile = 0;
+    let isGameOver = false;
+
+    const board = document.getElementById("game-board");
+    const keyboard = document.getElementById("keyboard");
+    const message = document.getElementById("message");
+    const restartBtn = document.getElementById("restart-btn");
+    const onlineBox = document.getElementById("online-panel-box");
+    const onlineStatus = document.getElementById("online-status");
+    const enemyLiveBox = document.getElementById("enemy-live-box");
+    const enemyTypingText = document.getElementById("enemy-typing-text");
+
+    const keysLayout = [
+        ["Й", "Ц", "У", "К", "Е", "Н", "Г", "Ш", "Щ", "З", "Х"],
+        ["Ф", "І", "В", "А", "П", "Р", "О", "Л", "Д", "Ж", "Є"],
+        ["ENTER", "Я", "Ч", "С", "М", "И", "Т", "Ь", "Б", "Ю", "⌫"]
+    ];
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const savedUser = localStorage.getItem('wordle_real_user');
+        if (savedUser) {
+            currentUser = JSON.parse(savedUser);
+            document.getElementById('auth-modal').style.display = 'none';
+            updateProfileUI();
+            initGame();
+        }
+    });
+
+    function loginOrCreateAccount() {
+        const name = document.getElementById('username-input').value.trim();
+        const password = document.getElementById('password-input').value.trim();
+
+        if (name.length < 2) { alert("Введи нікнейм!"); return; }
+        if (password.length < 3) { alert("Пароль мінімум 3 символи!"); return; }
+
+        let db = JSON.parse(localStorage.getItem('wordle_real_db') || "{}");
+
+        if (db[name]) {
+            if (db[name].password === password) {
+                currentUser = db[name];
+                alert(`Вітаємо з поверненням, ${currentUser.name}! ✅`);
+            } else {
+                alert("Невірний пароль! ❌");
+                return;
+            }
+        } else {
+            currentUser = { name, password, wins: 0, coins: 0 };
+            db[name] = currentUser;
+            localStorage.setItem('wordle_real_db', JSON.stringify(db));
+            alert(`Акаунт "${name}" успішно створено! 🎉`);
+        }
+
+        saveUserData();
+        document.getElementById('auth-modal').style.display = 'none';
+        updateProfileUI();
+        initGame();
+    }
+
+    function saveUserData() {
+        localStorage.setItem('wordle_real_user', JSON.stringify(currentUser));
+        let db = JSON.parse(localStorage.getItem('wordle_real_db') || "{}");
+        db[currentUser.name] = currentUser;
+        localStorage.setItem('wordle_real_db', JSON.stringify(db));
+    }
+
+    function updateProfileUI() {
+        document.getElementById('display-name').innerText = currentUser.name + (isAdmin ? " 🛡️ [Адмін]" : "");
+        document.getElementById('user-stats').innerText = `Перемог: ${currentUser.wins}`;
+        document.getElementById('user-coins').innerText = `🪙 ${currentUser.coins}`;
+    }
+
+    // --- РЕАЛЬНА АДМІН-ПАНЕЛЬ ТА КЕРУВАННЯ ГРАВЦЯМИ ---
+    function requestAdminAccess() {
+        if (isAdmin) {
+            openAdminPanel();
+        } else {
+            let pass = prompt("Введи пароль адміна (admin123):");
+            let activePass = localStorage.getItem('wordle_real_admin_pass') || "admin123";
+            if (pass === activePass || pass === "admin123") {
+                isAdmin = true;
+                updateProfileUI();
+                alert("Адмін-доступ надано! 🛡️");
+                openAdminPanel();
+            } else {
+                alert("Невірний пароль! ❌");
+            }
+        }
+    }
+
+    function openAdminPanel() {
+        if (!isAdmin) return;
+        updateRealPlayersList();
+        document.getElementById('admin-modal').style.display = 'flex';
+    }
+
+    function updateRealPlayersList() {
+        let db = JSON.parse(localStorage.getItem('wordle_real_db') || "{}");
+        let listEl = document.getElementById('admin-real-players-list');
+        listEl.innerHTML = "";
+
+        let players = Object.values(db);
+        if (players.length === 0) {
+            listEl.innerHTML = "<p style='color:#aaa; font-size:12px; padding:8px;'>Немає зареєстрованих гравців.</p>";
+            return;
+        }
+
+        players.forEach(p => {
+            let row = document.createElement('div');
+            row.className = 'player-row';
+            row.innerHTML = `
+                <span><b>${p.name}</b><br><small style="color:#aaa;">Перемог: ${p.wins} | Монет: ${p.coins}</small></span>
+                <div class="admin-actions">
+                    <button class="action-btn give-btn" onclick="adminGiveCoinsTo('${p.name}')">+🪙</button>
+                    <button class="action-btn del-btn" onclick="adminDeletePlayer('${p.name}')">🗑️</button>
+                </div>
+            `;
+            listEl.appendChild(row);
+        });
+    }
+
+    function adminGiveCoinsTo(playerName) {
+        let db = JSON.parse(localStorage.getItem('wordle_real_db') || "{}");
+        if (db[playerName]) {
+            db[playerName].coins += 500;
+            db[playerName].wins += 1;
+            localStorage.setItem('wordle_real_db', JSON.stringify(db));
+            if (currentUser.name === playerName) {
+                currentUser = db[playerName];
+                updateProfileUI();
+            }
+            updateRealPlayersList();
+            alert(`Гравцю ${playerName} додано +500 монет і +1 перемогу!`);
+        }
+    }
+
+    function adminDeletePlayer(playerName) {
+        if (confirm(`Видалити акаунт ${playerName}?`)) {
+            let db = JSON.parse(localStorage.getItem('wordle_real_db') || "{}");
+            delete db[playerName];
+            localStorage.setItem('wordle_real_db', JSON.stringify(db));
+            updateRealPlayersList();
+            alert(`Акаунт ${playerName} видалено.`);
+        }
+    }
+
+    function adminGiveSelfCoins() {
+        currentUser.coins += 1000;
+        saveUserData();
+        updateProfileUI();
+        alert("🪙 Додано +1000 монет собі!");
+    }
+
+    function changeAdminPassword() {
+        let oldP = prompt("Введи поточний пароль адміна:");
+        let activePass = localStorage.getItem('wordle_real_admin_pass') || "admin123";
+        if (oldP === activePass || oldP === "admin123") {
+            let newP = prompt("Введи новий пароль адміна:");
+            if (newP && newP.trim().length >= 3) {
+                localStorage.setItem('wordle_real_admin_pass', newP.trim());
+                alert("🔑 Пароль адміна успішно змінено!");
+            }
+        } else {
+            alert("Невірний пароль!");
+        }
+    }
+
+    // --- СПРАВЖНІЙ ТОП РЕКОРДІВ ---
+    function openLeaderboard() {
+        let db = JSON.parse(localStorage.getItem('wordle_real_db') || "{}");
+        let listEl = document.getElementById('leaderboard-list');
+        listEl.innerHTML = "";
+
+        let players = Object.values(db);
+        players.sort((a, b) => b.wins - a.wins);
+
+        if (players.length === 0) {
+            listEl.innerHTML = "<p style='color:#aaa; text-align:center;'>Ще немає рекордів. Виграй першу гру!</p>";
+        }
+
+        players.slice(0, 10).forEach((p, idx) => {
+            let item = document.createElement('div');
+            item.className = 'lb-item';
+            item.innerHTML = `<span>${idx + 1}. ${p.name} ${p.name === currentUser.name ? '(Ти)' : ''}</span> <b>🔥 ${p.wins} перемог</b>`;
+            listEl.appendChild(item);
+        });
+
+        document.getElementById('leaderboard-modal').style.display = 'flex';
+    }
+
+    // --- ОНЛАЙН КІМНАТА ---
+    function setMode(mode) {
+        gameMode = mode;
+        document.getElementById('btn-solo').classList.toggle('active', mode === 'solo');
+        document.getElementById('btn-custom').classList.toggle('active', mode === 'custom');
+        document.getElementById('btn-local').classList.toggle('active', mode === 'local');
+        document.getElementById('btn-online').classList.toggle('active', mode === 'online');
+
+        onlineBox.classList.toggle('active', mode === 'online');
+        if (mode !== 'online') {
+            enemyLiveBox.classList.remove('active');
+            if (peer) { peer.destroy(); peer = null; }
+        }
+
+        if (mode === 'solo') {
+            initGame();
+        } else if (mode === 'custom') {
+            let w = prompt("Введи своє слово українською:");
+            if (w && w.trim().length >= 3) { targetWord = w.trim().toUpperCase(); startNewRound(); } else { setMode('solo'); }
+        } else if (mode === 'local') {
+            let w = prompt("Гра на 1 пристрої: введи слово для суперника:");
+            if (w && w.trim().length >= 3) { targetWord = w.trim().toUpperCase(); alert("Слово загадано!"); startNewRound(); } else { setMode('solo'); }
+        } else if (mode === 'online') {
+            onlineStatus.innerText = "Створи кімнату або введи ID друга, щоб підключитись наживо!";
+        }
+    }
+
+    function createRoom() {
+        const randomId = Math.floor(1000 + Math.random() * 9000).toString();
+        peer = new Peer(randomId);
+
+        peer.on('open', (id) => {
+            onlineStatus.innerHTML = `Твоя кімната створена! ID: <b class="room-tag">${id}</b>. Дай його другу!`;
+        });
+
+        peer.on('connection', (c) => {
+            conn = c;
+            setupPeerConnection();
+            onlineStatus.innerText = "Живий друг приєднався! Загадай йому слово з 5 літер:";
+            let secret = prompt("Введи секретне слово для друга:");
+            if (secret && secret.trim().length === 5) {
+                targetWord = secret.trim().toUpperCase();
+                conn.send({ type: 'START', word: targetWord });
+                onlineStatus.innerText = "Слово надіслано другу! Початок дуелі!";
+                enemyLiveBox.classList.add('active');
+                startNewRound();
+            }
+        });
+    }
+
+    function joinRoom() {
+        const idInput = document.getElementById('room-id-input').value.trim();
+        if (!idInput) { alert("Введи ID кімнати друга!"); return; }
+
+        peer = new Peer();
+        peer.on('open', () => {
+            conn = peer.connect(idInput);
+            setupPeerConnection();
+            onlineStatus.innerText = "Підключено до кімнати друга! Чекай, поки він загадає слово...";
+        });
+    }
+
+    function setupPeerConnection() {
+        conn.on('data', (data) => {
+            if (data.type === 'START') {
+                targetWord = data.word;
+                onlineStatus.innerText = "Гра почалася! Дуель наживо триває!";
+                enemyLiveBox.classList.add('active');
+                startNewRound();
+            } else if (data.type === 'TYPING') {
+                enemyTypingText.innerText = data.text || "...";
+            } else if (data.type === 'WIN') {
+                message.innerText = "Суперник першим вгадав слово! 🏆";
+                endGame();
+            }
+        });
+    }
+
+    function sendCurrentTyping() {
+        if (conn && conn.open) {
+            let currentText = "";
+            const row = board.children[currentRow];
+            for (let i = 0; i < wordLength; i++) {
+                currentText += row.children[i].innerText || "_";
+            }
+            conn.send({ type: 'TYPING', text: currentText });
+        }
+    }
+
+    // --- ЛОГІКА ГРИ WORDLE ---
+    function initGame() {
+        if (gameMode === 'solo' || (gameMode === 'online' && !targetWord)) {
+            targetWord = DICTIONARY[Math.floor(Math.random() * DICTIONARY.length)];
+        }
+        startNewRound();
+    }
+
+    function startNewRound() {
+        board.innerHTML = "";
+        keyboard.innerHTML = "";
+        message.innerText = "";
+        restartBtn.style.display = "none";
+        currentRow = 0;
+        currentTile = 0;
+        isGameOver = false;
+        wordLength = targetWord.length;
+
+        for (let i = 0; i < 6; i++) {
+            const row = document.createElement("div");
+            row.className = "row";
+            row.style.gridTemplateColumns = `repeat(${wordLength}, 1fr)`;
+            for (let j = 0; j < wordLength; j++) {
+                const tile = document.createElement("div");
+                tile.className = "tile";
+                row.appendChild(tile);
+            }
+            board.appendChild(row);
+        }
+
+        keysLayout.forEach(rowKeys => {
+            const row = document.createElement("div");
+            row.className = "key-row";
+            rowKeys.forEach(key => {
+                const keyBtn = document.createElement("button");
+                keyBtn.className = "key";
+                keyBtn.innerText = key;
+                if (key === "ENTER" || key === "⌫") keyBtn.classList.add("large");
+                keyBtn.onclick = () => handleInput(key);
+                keyBtn.setAttribute("id", `key-${key}`);
+                row.appendChild(keyBtn);
+            });
+            keyboard.appendChild(row);
+        });
+    }
+
+    function handleInput(key) {
+        if (isGameOver) return;
+        if (key === "⌫" || key === "BACKSPACE") {
+            deleteLetter();
+        } else if (key === "ENTER") {
+            submitGuess();
+        } else if (/^[А-ЩЬЮЯЄІЇҐа-щьюяєіїґ]$/i.test(key) && currentTile < wordLength) {
+            addLetter(key.toUpperCase());
+        }
+        sendCurrentTyping();
+    }
+
+    function addLetter(letter) {
+        const row = board.children[currentRow];
+        const tile = row.children[currentTile];
+        tile.innerText = letter;
+        currentTile++;
+    }
+
+    function deleteLetter() {
+        if (currentTile > 0) {
+            currentTile--;
+            const row = board.children[currentRow];
+            const tile = row.children[currentTile];
+            tile.innerText = "";
+        }
+    }
+
+    function submitGuess() {
+        if (currentTile < wordLength) {
+            message.innerText = `Потрібно ${wordLength} літер!`;
+            return;
+        }
+
+        const row = board.children[currentRow];
+        let guess = "";
+        for (let i = 0; i < wordLength; i++) {
+            guess += row.children[i].innerText;
+        }
+
+        let targetArray = targetWord.split("");
+
+        for (let i = 0; i < wordLength; i++) {
+            const tile = row.children[i];
+            const letter = guess[i];
+            if (letter === targetWord[i]) {
+                tile.setAttribute("data-state", "correct");
+                updateKey(letter, "correct");
+                targetArray[i] = null;
+            }
+        }
+
+        for (let i = 0; i < wordLength; i++) {
+            const tile = row.children[i];
+            const letter = guess[i];
+            if (tile.getAttribute("data-state") !== "correct") {
+                const index = targetArray.indexOf(letter);
+                if (index !== -1) {
+                    tile.setAttribute("data-state", "present");
+                    updateKey(letter, "present");
+                    targetArray[index] = null;
+                } else {
+                    tile.setAttribute("data-state", "absent");
+                    updateKey(letter, "absent");
+                }
+            }
+        }
+
+        if (guess === targetWord) {
+            message.innerText = `ПЕРЕМОГА! 🎉`;
+            currentUser.wins++;
+            currentUser.coins += 50;
+            saveUserData();
+            updateProfileUI();
+
+            if (conn && conn.open) {
+                conn.send({ type: 'WIN' });
+            }
+            endGame();
+        } else if (currentRow === 5) {
+            message.innerText = `Кінець гри! Слово: ${targetWord}`;
+            endGame();
+        } else {
+            currentRow++;
+            currentTile = 0;
+            message.innerText = "";
+        }
+        sendCurrentTyping();
+    }
+
+    function updateKey(letter, state) {
+        const keyBtn = document.getElementById(`key-${letter}`);
+        if (keyBtn) {
+            if (keyBtn.getAttribute("data-state") !== "correct") {
+                keyBtn.setAttribute("data-state", state);
+            }
+        }
+    }
+
+    function endGame() {
+        isGameOver = true;
+        restartBtn.style.display = "block";
+    }
+
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    window.addEventListener("keydown", (e) => {
+        handleInput(e.key.toUpperCase());
+    });
+</script>
+
+</body>
+</html>
